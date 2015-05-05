@@ -33,7 +33,7 @@ public:
         planning_scene_ptr_ = std::shared_ptr<planning_scene::PlanningScene>(new planning_scene::PlanningScene(loader.getModel()));
         planning_scene_client_ = nh.serviceClient<moveit_msgs::GetPlanningScene>(planning_scene_service);
         trajectory_validity_server_ = nh.advertiseService(trajectory_validity_service, &TrajectoryVerifier::CheckTrajectoryValidityCB, this);
-        trajectory_validity_server_ = nh.advertiseService(batch_trajectory_validity_service, &TrajectoryVerifier::BatchCheckTrajectoryValidityCB, this);
+        batch_trajectory_validity_server_ = nh.advertiseService(batch_trajectory_validity_service, &TrajectoryVerifier::BatchCheckTrajectoryValidityCB, this);
     }
 
     void Loop()
