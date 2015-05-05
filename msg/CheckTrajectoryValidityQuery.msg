@@ -1,0 +1,5 @@
+sensor_msgs/JointState initial_state
+trajectory_msgs/JointTrajectory trajectory
+uint8 CHECK_SELF_COLLISION=0
+uint8 CHECK_ENVIRONMENT_COLLISION=1
+uint8 check_type
