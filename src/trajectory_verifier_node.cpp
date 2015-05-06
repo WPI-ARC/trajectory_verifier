@@ -52,7 +52,11 @@ public:
         {
             // Update the planning scene
             moveit_msgs::GetPlanningSceneRequest ps_req;
-            ps_req.components.components = moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_NAMES | moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_GEOMETRY | moveit_msgs::PlanningSceneComponents::OCTOMAP;
+            ps_req.components.components = moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_NAMES
+                                         | moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_GEOMETRY
+                                         | moveit_msgs::PlanningSceneComponents::OCTOMAP 
+                                         | moveit_msgs::PlanningSceneComponents::ROBOT_STATE_ATTACHED_OBJECTS
+                                         | moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX;
             moveit_msgs::GetPlanningSceneResponse ps_res;
             planning_scene_client_.call(ps_req, ps_res);
             moveit_msgs::PlanningScene& planning_scene_state = ps_res.scene;
@@ -96,7 +100,7 @@ public:
                     // Update the robot state
                     for (size_t jdx = 0; jdx < trajectory_joint_names.size(); jdx++)
                     {
-                        robot_state.setJointPositions(trajectory_joint_names[jdx], &(current_point.positions[idx]));
+                        robot_state.setJointPositions(trajectory_joint_names[jdx], &(current_point.positions[jdx]));
                     }
                     // Check for collisions (if check_type > 0, we also check environemnt collisions
                     if (query.check_type > 0)
@@ -105,7 +109,7 @@ public:
                         planning_scene_ptr_->checkCollision(col_req, col_res);
                         if (col_res.collision)
                         {
-                            ROS_WARN("Trajectory invalid due to environment collision at state %zu of % zu", idx, query.trajectory.points.size());
+                            ROS_WARN("Trajectory invalid due to environment collision at state %zu of %zu", idx + 1, query.trajectory.points.size());
                             result.status |= trajectory_verifier::CheckTrajectoryValidityResult::ENVIRONMENT_COLLISION;
                             break;
                         }
@@ -116,7 +120,7 @@ public:
                         planning_scene_ptr_->checkSelfCollision(col_req, col_res);
                         if (col_res.collision)
                         {
-                            ROS_WARN("Trajectory invalid due to self collision at state %zu of % zu", idx, query.trajectory.points.size());
+                            ROS_WARN("Trajectory invalid due to self collision at state %zu of %zu", idx + 1, query.trajectory.points.size());
                             result.status |= trajectory_verifier::CheckTrajectoryValidityResult::SELF_COLLISION;
                             break;
                         }
