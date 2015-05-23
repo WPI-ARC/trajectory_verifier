@@ -75,6 +75,24 @@ public:
         }
     }
 
+
+    void PrintCollisions(const collision_detection::CollisionResult& col_res) const
+    {
+        const collision_detection::CollisionResult::ContactMap& contacts = col_res.contacts;
+        collision_detection::CollisionResult::ContactMap::const_iterator contacts_itr;
+        for (contacts_itr == contacts.begin(); contacts_itr != contacts.end(); ++contacts_itr)
+        {
+            const std::pair<std::string, std::string>& contact_bodies = contacts_itr->first;
+            const std::vector<collision_detection::Contact> contact_details = contacts_itr->second;
+            ROS_WARN("Contact detected between %s and %s", contact_bodies.first.c_str(), contact_bodies.second.c_str());
+            for (size_t idx = 0; idx < contact_details.size(); idx++)
+            {
+                const collision_detection::Contact& contact = contact_details[idx];
+                ROS_WARN("Details - contact between %s and %s at position (%f,%f,%f) with penetration %f", contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.pos.x(), contact.pos.y(), contact.pos.z(), contact.depth);
+            }
+        }
+    }
+
     trajectory_verifier::CheckTrajectoryValidityResult CheckTrajectoryValidity(const trajectory_verifier::CheckTrajectoryValidityQuery& query)
     {
         trajectory_verifier::CheckTrajectoryValidityResult result;
@@ -88,6 +106,7 @@ public:
         else
         {
             collision_detection::CollisionRequest col_req;
+            col_req.contacts = true;
             collision_detection::CollisionResult col_res;
             robot_state::RobotState& robot_state = planning_scene_ptr_->getCurrentStateNonConst();
             // Set the initial state
@@ -114,6 +133,7 @@ public:
                         planning_scene_ptr_->checkCollision(col_req, col_res);
                         if (col_res.collision)
                         {
+                            PrintCollisions(col_res);
                             ROS_WARN("Trajectory invalid due to environment collision at state %zu of %zu", idx + 1, query.trajectory.points.size());
                             result.status |= trajectory_verifier::CheckTrajectoryValidityResult::ENVIRONMENT_COLLISION;
                             break;
@@ -125,6 +145,7 @@ public:
                         planning_scene_ptr_->checkSelfCollision(col_req, col_res);
                         if (col_res.collision)
                         {
+                            PrintCollisions(col_res);
                             ROS_WARN("Trajectory invalid due to self collision at state %zu of %zu", idx + 1, query.trajectory.points.size());
                             result.status |= trajectory_verifier::CheckTrajectoryValidityResult::SELF_COLLISION;
                             break;
