@@ -93,7 +93,7 @@ catkin_package(
 # include_directories(include)
 include_directories(SYSTEM ${catkin_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS})
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra -Werror")
+set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -O3 -g -Wall -Wextra -Werror")
 
 ## Declare a cpp executable
 add_executable(trajectory_verifier_node src/trajectory_verifier_node.cpp)

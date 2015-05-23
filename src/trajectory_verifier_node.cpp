@@ -80,15 +80,12 @@ public:
     {
         const collision_detection::CollisionResult::ContactMap& contacts = col_res.contacts;
         collision_detection::CollisionResult::ContactMap::const_iterator contacts_itr;
-        for (contacts_itr == contacts.begin(); contacts_itr != contacts.end(); ++contacts_itr)
+        for (contacts_itr = contacts.begin(); contacts_itr != contacts.end(); ++contacts_itr)
         {
-            const std::pair<std::string, std::string>& contact_bodies = contacts_itr->first;
-            const std::vector<collision_detection::Contact> contact_details = contacts_itr->second;
-            ROS_WARN("Contact detected between %s and %s", contact_bodies.first.c_str(), contact_bodies.second.c_str());
-            for (size_t idx = 0; idx < contact_details.size(); idx++)
+            ROS_WARN("Contact detected between %s and %s", contacts_itr->first.first.c_str(), contacts_itr->first.second.c_str());
+            for (size_t idx = 0; idx < contacts_itr->second.size(); idx++)
             {
-                const collision_detection::Contact& contact = contact_details[idx];
-                ROS_WARN("Details - contact between %s and %s at position (%f,%f,%f) with penetration %f", contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.pos.x(), contact.pos.y(), contact.pos.z(), contact.depth);
+                ROS_WARN("Details - contact between %s and %s at position (%f,%f,%f) with penetration %f", contacts_itr->second[idx].body_name_1.c_str(), contacts_itr->second[idx].body_name_2.c_str(), contacts_itr->second[idx].pos.x(), contacts_itr->second[idx].pos.y(), contacts_itr->second[idx].pos.z(), contacts_itr->second[idx].depth);
             }
         }
     }
