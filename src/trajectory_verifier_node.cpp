@@ -54,9 +54,14 @@ public:
             moveit_msgs::GetPlanningSceneRequest ps_req;
             ps_req.components.components = moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_NAMES
                                          | moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_GEOMETRY
-                                         | moveit_msgs::PlanningSceneComponents::OCTOMAP 
+                                         | moveit_msgs::PlanningSceneComponents::OCTOMAP
+                                         | moveit_msgs::PlanningSceneComponents::ROBOT_STATE
                                          | moveit_msgs::PlanningSceneComponents::ROBOT_STATE_ATTACHED_OBJECTS
-                                         | moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX;
+                                         | moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX
+                                         | moveit_msgs::PlanningSceneComponents::SCENE_SETTINGS
+                                         | moveit_msgs::PlanningSceneComponents::TRANSFORMS
+                                         | moveit_msgs::PlanningSceneComponents::OBJECT_COLORS
+                                         | moveit_msgs::PlanningSceneComponents::LINK_PADDING_AND_SCALING;
             moveit_msgs::GetPlanningSceneResponse ps_res;
             planning_scene_client_.call(ps_req, ps_res);
             moveit_msgs::PlanningScene& planning_scene_state = ps_res.scene;
