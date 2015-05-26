@@ -90,6 +90,72 @@ public:
         }
     }
 
+    std::vector<double> Interpolate(const std::vector<double>& p1, const std::vector<double>& p2, const double fraction) const
+    {
+        if (p1.size() != p2.size())
+        {
+            throw std::invalid_argument("Cannot interpolated between different-sized vectors");
+        }
+        else
+        {
+            std::vector<double> interpolated(p1.size());
+            for (size_t idx = 0; idx < interpolated.size(); idx++)
+            {
+                const double p1_val = p1[idx];
+                const double p2_val = p2[idx];
+                interpolated[idx] = p1_val + ((p2_val - p1_val) * fraction);
+            }
+            return interpolated;
+        }
+    }
+
+    double Interpolate(const double v1, const double v2, const double fraction) const
+    {
+        double interped = v1 + ((v2 - v1) * fraction);
+        return interped;
+    }
+
+    trajectory_msgs::JointTrajectoryPoint Interpolate(const trajectory_msgs::JointTrajectoryPoint& p1, const trajectory_msgs::JointTrajectoryPoint& p2, const double fraction) const
+    {
+        // Interpolate the joint angles between the two points provided
+        trajectory_msgs::JointTrajectoryPoint interpolated_point;
+        interpolated_point.positions = Interpolate(p1.positions, p2.positions, fraction);
+        interpolated_point.velocities = Interpolate(p1.velocities, p2.velocities, fraction);
+        interpolated_point.accelerations = Interpolate(p1.accelerations, p2.accelerations, fraction);
+        interpolated_point.effort = Interpolate(p1.effort, p2.effort, fraction);
+        interpolated_point.time_from_start = ros::Duration(Interpolate(p1.time_from_start.toSec(), p2.time_from_start.toSec(), fraction));
+        return interpolated_point;
+    }
+
+    std::pair<trajectory_msgs::JointTrajectory, bool> InterpolateCompleteTrajectory(const trajectory_msgs::JointTrajectory& original_traj) const
+    {
+        trajectory_msgs::JointTrajectory interpolated_trajectory;
+        interpolated_trajectory.joint_names = original_traj.joint_names;
+        if (original_traj.points.size() < 2)
+        {
+            ROS_WARN("Trajectory has fewer than 2 points, not interpolating for finer collision checks");
+            interpolated_trajectory.points = original_traj.points;
+            return std::pair<trajectory_msgs::JointTrajectory, bool>(interpolated_trajectory, true);
+        }
+        else
+        {
+            // Add the start point
+            interpolated_trajectory.points.push_back(original_traj.points[0]);
+            for (size_t idx = 1; idx < original_traj.points.size(); idx++)
+            {
+                // Grab the current and previous points
+                const trajectory_msgs::JointTrajectoryPoint& prev_point = original_traj.points[idx - 1];
+                const trajectory_msgs::JointTrajectoryPoint& cur_point = original_traj.points[idx];
+                // Add interpolated points between them
+                interpolated_trajectory.points.push_back(Interpolate(prev_point, cur_point, 0.25));
+                interpolated_trajectory.points.push_back(Interpolate(prev_point, cur_point, 0.5));
+                interpolated_trajectory.points.push_back(Interpolate(prev_point, cur_point, 0.75));
+                interpolated_trajectory.points.push_back(Interpolate(prev_point, cur_point, 1.0));
+            }
+            return std::pair<trajectory_msgs::JointTrajectory, bool>(interpolated_trajectory, true);
+        }
+    }
+
     trajectory_verifier::CheckTrajectoryValidityResult CheckTrajectoryValidity(const trajectory_verifier::CheckTrajectoryValidityQuery& query)
     {
         trajectory_verifier::CheckTrajectoryValidityResult result;
@@ -99,7 +165,16 @@ public:
         {
             ROS_ERROR("Initial state is invalid");
             result.status |= trajectory_verifier::CheckTrajectoryValidityResult::INVALID_PARAMETERS;
+            return result;
         }
+        std::pair<trajectory_msgs::JointTrajectory, bool> interpolated_trajectory_query = InterpolateCompleteTrajectory(query.trajectory);
+        if (!interpolated_trajectory_query.second)
+        {
+            ROS_ERROR("Interpolation of complete trajectory failed");
+            result.status |= trajectory_verifier::CheckTrajectoryValidityResult::INVALID_PARAMETERS;
+            return result;
+        }
+        // Verify the interpolated trajectory
         else
         {
             collision_detection::CollisionRequest col_req;
@@ -112,10 +187,10 @@ public:
                 robot_state.setJointPositions(query.initial_state.name[jdx], &(query.initial_state.position[jdx]));
             }
             // Loop through the trajectory
-            const std::vector<std::string>& trajectory_joint_names = query.trajectory.joint_names;
-            for (size_t idx = 0; idx < query.trajectory.points.size(); idx++)
+            const std::vector<std::string>& trajectory_joint_names = interpolated_trajectory_query.first.joint_names;
+            for (size_t idx = 0; idx < interpolated_trajectory_query.first.points.size(); idx++)
             {
-                const trajectory_msgs::JointTrajectoryPoint& current_point = query.trajectory.points[idx];
+                const trajectory_msgs::JointTrajectoryPoint& current_point = interpolated_trajectory_query.first.points[idx];
                 if (current_point.positions.size() == trajectory_joint_names.size())
                 {
                     // Update the robot state
@@ -155,9 +230,9 @@ public:
                     break;
                 }
             }
+            // Return the result
+            return result;
         }
-        // Return the result
-        return result;
     }
 
     bool CheckTrajectoryValidityCB(trajectory_verifier::CheckTrajectoryValidity::Request& req, trajectory_verifier::CheckTrajectoryValidity::Response& res)
